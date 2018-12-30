@@ -83,7 +83,7 @@
      </widget>
     </item>
     <item row="2" column="1">
-     <widget class="QLabel" name="label">
+     <widget class="QLabel" name="timeLbl">
       <property name="text">
        <string>00:00:00/00:00:00</string>
       </property>
@@ -123,7 +123,14 @@
     </property>
     <addaction name="actionAbout_Narrative_Director"/>
    </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="actionPreferences"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
    <addaction name="menuHelp"/>
   </widget>
   <action name="actionNew">
@@ -169,6 +176,11 @@
   <action name="actionAbout_Narrative_Director">
    <property name="text">
     <string>About Narrative Director</string>
+   </property>
+  </action>
+  <action name="actionPreferences">
+   <property name="text">
+    <string>Preferences</string>
    </property>
   </action>
  </widget>

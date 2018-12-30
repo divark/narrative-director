@@ -26,13 +26,16 @@ CONFIG += c++11
 
 SOURCES += \
         main.cpp \
-        narrativedirector.cpp
+        narrativedirector.cpp \
+    preferences.cpp
 
 HEADERS += \
-        narrativedirector.h
+        narrativedirector.h \
+    preferences.h
 
 FORMS += \
-        narrativedirector.ui
+        narrativedirector.ui \
+    preferences.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
