@@ -28,7 +28,8 @@ public:
 
     void changeParagraphLbl(int);
     void updateTimeLbl();
-    void setPartsDir(QString);
+    void updateRecordingLocation();
+    //void setPartsDir(QString);
     QString getParagraphFromFile(qint64);
     QString getParagraph(int);
     QString getSentenceFromFile(qint64&);
@@ -56,6 +57,7 @@ private slots:
 
     void onARStateChanged(QAudioRecorder::State);
     void onMPStateChanged(QMediaPlayer::State);
+    void onMPMediaStatusChanged(QMediaPlayer::MediaStatus);
     //void displayErrorMessage();
 
     void on_actionSave_As_triggered();
@@ -63,32 +65,30 @@ private slots:
     void on_actionSave_triggered();
 
     void on_actionPreferences_triggered();
-    void updateProgress(int pos);
+    void updateAProgress(int pos);
+    void updateAEnd(int pos);
 
 private:
     Ui::NarrativeDirector *ui;
     Preferences *preferences;
     QAudioRecorder* audioRecorder = nullptr;
     QMediaPlayer* audioPlayer = nullptr;
-    QTime currentTime;
-    QTime audioFileDuration;
+    QUrl recordingLocation;
+    QTime recordingPosition;
+    QTime recordingDuration;
 
     QVector<std::pair<int, QString>> paragraphs;
     int prgNum = 0;
 
-    QDir partsLocation;
-    QFile currentFile;
-    QTextStream fileInput;
-    QDateTime fileLastModifed;
+    QFile narrativeFile;
+    QTextStream narrativeInput;
     qint64 filePos = 0;
     QString currentProjectFile;
-    QString recordFile = "part0";
-    QString audioExtension;
     bool hasChanged;
+    QString audioExtension;
 
     void closeEvent(QCloseEvent *event) override;
     bool promptIfNotSaved();
-    void changeRecordFile(int);
 };
 
 #endif // NARRATIVEDIRECTOR_H

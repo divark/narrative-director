@@ -11,25 +11,21 @@ NarrativeDirector::NarrativeDirector(QWidget *parent) :
     audioPlayer = new QMediaPlayer(this);
     preferences = new Preferences(this, audioRecorder);
 
-    currentTime = QTime(0, 0, 0, 0);
-    audioFileDuration = QTime(0, 0, 0, 0);
+    recordingPosition = QTime(0, 0, 0, 0);
+    recordingDuration = QTime(0, 0, 0, 0);
 
     connect(audioRecorder, &QAudioRecorder::stateChanged, this, &NarrativeDirector::onARStateChanged);
-    connect(audioPlayer, &QMediaPlayer::positionChanged, this, &NarrativeDirector::updateProgress);
-    connect(audioRecorder, &QAudioRecorder::durationChanged, this, &NarrativeDirector::updateProgress);
-
-    //connect(audioRecorder, QOverload<QMediaRecorder::Error>::of(&QAudioRecorder::error), this,
-    //        &NarrativeDirector::displayErrorMessage);
+    connect(audioRecorder, &QAudioRecorder::durationChanged, this, &NarrativeDirector::updateAEnd);
 
     connect(audioPlayer, &QMediaPlayer::stateChanged, this, &NarrativeDirector::onMPStateChanged);
-    //connect(audioPlayer, QOverload<QMediaPlayer::Error>::of(&QMediaPlayer::error), this,
-    //        &NarrativeDirector::displayErrorMessage);
+    connect(audioPlayer, &QMediaPlayer::mediaStatusChanged, this, &NarrativeDirector::onMPMediaStatusChanged);
+    connect(audioPlayer, &QMediaPlayer::positionChanged, this, &NarrativeDirector::updateAProgress);
 }
 
 NarrativeDirector::~NarrativeDirector()
 {
-    if(currentFile.isOpen())
-        currentFile.close();
+    if(narrativeFile.isOpen())
+        narrativeFile.close();
 
     delete audioRecorder;
     delete audioPlayer;
@@ -38,57 +34,100 @@ NarrativeDirector::~NarrativeDirector()
 }
 
 void NarrativeDirector::updateTimeLbl() {
-    ui->timeLbl->setText(currentTime.toString() + '/' + audioFileDuration.toString());
+    ui->timeLbl->setText(recordingPosition.toString() + '/' + recordingDuration.toString());
 }
 
-void NarrativeDirector::updateProgress(int duration) {
-    if (audioPlayer->error() != QMediaPlayer::NoError ||
-            audioRecorder->error() != QAudioRecorder::NoError
+void NarrativeDirector::updateAProgress(int duration) {
+    if (audioRecorder->error() != QAudioRecorder::NoError
+            || audioPlayer->error() != QMediaPlayer::NoError
             || duration < 1000)
         return;
 
     QTime newTime(0, 0, 0, 0);
-    currentTime = newTime.addMSecs(duration);
+    recordingPosition = newTime.addMSecs(duration);
 
-    if(currentTime > audioFileDuration)
-        audioFileDuration = currentTime;
+    if(recordingPosition > recordingDuration)
+        recordingDuration = recordingPosition;
 
     updateTimeLbl();
-    //ui->statusbar->showMessage(tr("Recorded %1 sec").arg(duration / 1000));
+}
+
+void NarrativeDirector::updateAEnd(int duration) {
+    if (audioRecorder->error() != QAudioRecorder::NoError
+            || audioPlayer->error() != QMediaPlayer::NoError
+            || duration < 1000)
+        return;
+
+    QTime newTime(0, 0, 0, 0);
+    recordingDuration = newTime.addMSecs(duration);
+
+    updateTimeLbl();
 }
 
 void NarrativeDirector::on_recordBtn_clicked()
 {
+    if(QFileInfo(recordingLocation.path()).exists()) {
+        QFile recordingFile(recordingLocation.path());
+
+        recordingFile.remove();
+    }
+
+    updateRecordingLocation();
+
+    audioRecorder->setOutputLocation(recordingLocation);
     audioRecorder->record();
 }
 
 void NarrativeDirector::on_playBtn_clicked()
 {
-    if(ui->playBtn->text().compare("Play") == 0) {
-        if(audioPlayer->state() != QMediaPlayer::PausedState) {
-            QTime newTime(0, 0, 0, 0);
-            currentTime = newTime;
-            updateTimeLbl();
-        }
-
+    //Audio player checks
+    if(audioPlayer->state() == QMediaPlayer::PausedState ||
+            audioPlayer->state() == QMediaPlayer::StoppedState) {
         audioPlayer->play();
+    } else if(audioPlayer->state() == QMediaPlayer::PlayingState) {
+        audioPlayer->pause();
+    }
+
+    //Audio recording check
+    if(audioRecorder->state() == QAudioRecorder::RecordingState) {
+        audioRecorder->pause();
+    }
+}
+
+void NarrativeDirector::on_stopBtn_clicked()
+{
+    if(audioRecorder->state() == QAudioRecorder::RecordingState) {
+        audioRecorder->stop();
+
+        auto outputLocation = audioRecorder->outputLocation();
+        audioPlayer->setMedia(outputLocation);
+        audioExtension = outputLocation.fileName().right(4);
         return;
     }
 
-    if(audioRecorder->state() == QAudioRecorder::RecordingState)
-        audioRecorder->pause();
-    else
-        audioPlayer->pause();
+    //I must be playing audio otherwise, so
+    audioPlayer->stop();
+    recordingPosition = QTime(0, 0, 0, 0);
+    updateTimeLbl();
 }
+
 
 void NarrativeDirector::on_backBtn_clicked()
 {
     if(prgNum - 1 < 0) return;
 
+    recordingPosition = QTime(0, 0, 0, 0);
+    updateTimeLbl();
+
     try {
         changeParagraphLbl(prgNum - 1);
-        changeRecordFile(prgNum - 1);
         prgNum--;
+        updateRecordingLocation();
+
+        if(QFileInfo(recordingLocation.path()).exists())
+            audioPlayer->setMedia(recordingLocation);
+        else
+            audioPlayer->setMedia(nullptr);
     } catch(std::string &myError) {
         qDebug() << QString::fromStdString(myError);
     }
@@ -98,10 +137,18 @@ void NarrativeDirector::on_nextBtn_clicked()
 {
     if(paragraphs.length() == 0) return;
 
+    recordingPosition = QTime(0, 0, 0, 0);
+    updateTimeLbl();
+
     try {
         changeParagraphLbl(prgNum + 1);
-        changeRecordFile(prgNum + 1);
         prgNum++;
+        updateRecordingLocation();
+
+        if(QFileInfo(recordingLocation.path()).exists())
+            audioPlayer->setMedia(recordingLocation);
+        else
+            audioPlayer->setMedia(nullptr);
     } catch(std::string &myError) {
         qDebug() << QString::fromStdString(myError);
     }
@@ -120,22 +167,19 @@ void NarrativeDirector::on_actionNew_triggered()
     );
 
     if(fileName.isNull()) return;
-    if(currentFile.isOpen())
-        currentFile.close();
+    if(narrativeFile.isOpen())
+        narrativeFile.close();
 
-    currentFile.setFileName(fileName);
-    if(!currentFile.open(QIODevice::ReadOnly | QIODevice::Text))
+    narrativeFile.setFileName(fileName);
+    if(!narrativeFile.open(QIODevice::ReadOnly | QIODevice::Text))
         return;
-
-    setPartsDir(fileName);
 
     prgNum = 0;
     filePos = 0;
-    fileLastModifed = QFileInfo(currentFile).lastModified();
-    fileInput.setDevice(&currentFile);
+    narrativeInput.setDevice(&narrativeFile);
 
     changeParagraphLbl(prgNum);
-    changeRecordFile(prgNum);
+    updateRecordingLocation();
 
     ui->recordBtn->setEnabled(true);
 }
@@ -157,7 +201,9 @@ void NarrativeDirector::on_actionOpen_triggered()
     loadFromProjectFile(fileName);
 
     changeParagraphLbl(prgNum);
-    changeRecordFile(prgNum);
+    updateRecordingLocation();
+    if(QFileInfo(recordingLocation.path()).exists())
+        audioPlayer->setMedia(recordingLocation);
 
     ui->recordBtn->setEnabled(true);
 }
@@ -209,6 +255,27 @@ void NarrativeDirector::onMPStateChanged(QMediaPlayer::State state)
     }
 }
 
+void NarrativeDirector::onMPMediaStatusChanged(QMediaPlayer::MediaStatus mediaStatus) {
+    switch (mediaStatus) {
+    case QMediaPlayer::LoadedMedia:
+        recordingDuration = QTime(0, 0, 0, 0).addMSecs(audioPlayer->duration());
+
+        ui->playBtn->setEnabled(true);
+        ui->stopBtn->setEnabled(true);
+        updateTimeLbl();
+        break;
+    case QMediaPlayer::InvalidMedia:
+    case QMediaPlayer::UnknownMediaStatus:
+    case QMediaPlayer::NoMedia:
+        recordingDuration = QTime(0, 0, 0, 0);
+
+        ui->playBtn->setEnabled(false);
+        ui->stopBtn->setEnabled(false);
+        updateTimeLbl();
+        qDebug() << recordingLocation.path() << " Cannot be played.";
+    }
+}
+
 void NarrativeDirector::changeParagraphLbl(int prgIndex) {
     std::stringstream prgStream;
 
@@ -235,13 +302,13 @@ QString NarrativeDirector::getSentenceFromFile(qint64& location) {
     QString sentence = "";
 
     while(1) {
-        if(!fileInput.seek(location)) break;
+        if(!narrativeInput.seek(location)) break;
 
-        QChar currentLetter = fileInput.read(1).front();
-        if(fileInput.atEnd()) break;
+        QChar currentLetter = narrativeInput.read(1).front();
+        if(narrativeInput.atEnd()) break;
         sentence.append(currentLetter);
 
-        location = fileInput.pos();
+        location = narrativeInput.pos();
         if(isEndOfSentence(currentLetter)) {
             getToStartOfNextSentence(sentence, location);
             break;
@@ -257,36 +324,23 @@ bool NarrativeDirector::isEndOfSentence(QChar letter) {
 
 void NarrativeDirector::getToStartOfNextSentence(QString& sentence, qint64& location) {
     while(1) {
-        if(!fileInput.seek(location)) break;
+        if(!narrativeInput.seek(location)) break;
 
-        QChar currentLetter = fileInput.read(1).front();
-        if(fileInput.atEnd()) break;
+        QChar currentLetter = narrativeInput.read(1).front();
+        if(narrativeInput.atEnd()) break;
 
         if(!isEndOfSentence(currentLetter)) {
             if(currentLetter == '"' or currentLetter == '\''
                     or currentLetter == "”" or currentLetter == '`') {
                 sentence.append(currentLetter);
-                location = fileInput.pos();
+                location = narrativeInput.pos();
             }
             break;
         }
 
         sentence.append(currentLetter);
-        location = fileInput.pos();
+        location = narrativeInput.pos();
     }
-}
-
-void NarrativeDirector::on_stopBtn_clicked()
-{
-    if(audioRecorder->state() == QAudioRecorder::RecordingState ||
-            audioRecorder->state() == QAudioRecorder::PausedState) {
-        audioRecorder->stop();
-        audioExtension = audioRecorder->outputLocation().fileName().right(4);
-        changeRecordFile(prgNum);
-        return;
-    }
-
-    audioPlayer->stop();
 }
 
 QString NarrativeDirector::getParagraph(int paragraphNum) {
@@ -301,7 +355,7 @@ QString NarrativeDirector::getParagraph(int paragraphNum) {
         return getParagraphFromFile(prgEntry.first);
     }
 
-    if(fileInput.atEnd()) throw std::string("File at end.");
+    if(narrativeInput.atEnd()) throw std::string("File at end.");
 
     prgEntry.first = filePos;
     QString paragraph = getParagraphFromFile(filePos);
@@ -323,8 +377,7 @@ void NarrativeDirector::saveToProjectFile(QString filePath) {
         fileOutput << prgPair.first << ",";
     fileOutput << '\n' << flush;
     fileOutput << prgNum << '\n' << flush;
-    fileOutput << currentFile.fileName() << '\n' << flush;
-    fileOutput << fileLastModifed.toString() << '\n' << flush;
+    fileOutput << narrativeFile.fileName() << '\n' << flush;
     fileOutput << audioExtension << '\n' << flush;
 
     outputProjFile.close();
@@ -352,32 +405,29 @@ void NarrativeDirector::loadFromProjectFile(QString filePath) {
     prgNum = prjInput.readLine().toInt();
 
     //Text file being read for narration.
-    currentFile.setFileName(prjInput.readLine());
-    if(!currentFile.open(QIODevice::ReadOnly | QIODevice::Text))
+    narrativeFile.setFileName(prjInput.readLine());
+    if(!narrativeFile.open(QIODevice::ReadOnly | QIODevice::Text))
         return;
-    this->fileInput.setDevice(&currentFile);
+    this->narrativeInput.setDevice(&narrativeFile);
 
     //File last modified check.
-    fileLastModifed = QDateTime::fromString(prjInput.readLine());
-    QDateTime currentLastModified = QFileInfo(currentFile).lastModified();
+//    fileLastModifed = QDateTime::fromString(prjInput.readLine());
+//    QDateTime currentLastModified = QFileInfo(narrativeFile).lastModified();
 
-    if(QFileInfo(currentFile).lastModified() != fileLastModifed) {
-        std::string warningMessage = currentFile.fileName().toStdString();
-        warningMessage.append(" has been modified.");
-        QMessageBox::information(
-                    this,
-                    tr("NarrativeDirector"),
-                    tr(warningMessage.c_str())
-        );
+//    if(QFileInfo(narrativeFile).lastModified() != fileLastModifed) {
+//        std::string warningMessage = narrativeFile.fileName().toStdString();
+//        warningMessage.append(" has been modified.");
+//        QMessageBox::information(
+//                    this,
+//                    tr("NarrativeDirector"),
+//                    tr(warningMessage.c_str())
+//        );
 
-        fileLastModifed = currentLastModified;
-    }
+//        fileLastModifed = currentLastModified;
+//    }
 
     //Audio extension for parts
     audioExtension = prjInput.readLine();
-
-    //Parts directory initilization
-    setPartsDir(currentFile.fileName());
 
     openedProjectFile.close();
 }
@@ -441,9 +491,9 @@ bool NarrativeDirector::promptIfNotSaved() {
         }
     }
 
-    currentFile.close();
-    fileInput.flush();
-    fileInput.reset();
+    narrativeFile.close();
+    narrativeInput.flush();
+    narrativeInput.reset();
     paragraphs.clear();
     return true;
 }
@@ -453,36 +503,16 @@ void NarrativeDirector::on_actionPreferences_triggered()
     preferences->show();
 }
 
-void NarrativeDirector::changeRecordFile(int partNum) {
-    currentTime = QTime(0, 0, 0, 0);
-    audioFileDuration = QTime(0, 0, 0, 0);
+void NarrativeDirector::updateRecordingLocation() {
+    QString recordingFileDirName = narrativeFile.fileName();
+    recordingFileDirName.chop(4);
 
-    recordFile = partsLocation.path() +
-            QDir::separator() + "part" + QString::number(partNum) + audioExtension;
+    if(!QDir(recordingFileDirName).exists())
+        QDir().mkdir(recordingFileDirName);
 
-    auto localFile = QUrl::fromLocalFile(recordFile);
-    audioRecorder->setOutputLocation(localFile);
-    QFileInfo fileCheck(localFile.path());
-
-    if(fileCheck.exists() && fileCheck.isFile()) {
-        audioPlayer->setMedia(localFile);
-        auto audioMiliDuration = audioPlayer->duration();
-        audioFileDuration = QTime(0, 0, 0, 0).addMSecs(audioMiliDuration);
-
-        ui->playBtn->setEnabled(true);
-        ui->stopBtn->setEnabled(true);
-    } else {
-        ui->playBtn->setEnabled(false);
-        ui->stopBtn->setEnabled(false);
-    }
-
-    updateTimeLbl();
-}
-
-void NarrativeDirector::setPartsDir(QString fileName) {
-    fileName.chop(4);
-
-    partsLocation.setPath(fileName);
-    if(!partsLocation.exists())
-        partsLocation.mkpath(".");
+    QString recordingFileName = "part" + QString::number(prgNum)
+            + audioExtension;
+    recordingLocation = QUrl::fromUserInput(recordingFileName,
+                                            recordingFileDirName,
+                                            QUrl::UserInputResolutionOption::AssumeLocalFile);
 }
