@@ -503,16 +503,20 @@ void NarrativeDirector::on_actionPreferences_triggered()
     preferences->show();
 }
 
-void NarrativeDirector::updateRecordingLocation() {
-    QString recordingFileDirName = narrativeFile.fileName();
+void NarrativeDirector::updateRecordingLocation() {    
+    QString recordingFileDirName = QFileInfo(narrativeFile.fileName()).fileName();
     recordingFileDirName.chop(4);
 
-    if(!QDir(recordingFileDirName).exists())
-        QDir().mkdir(recordingFileDirName);
+    QString recordingPath = QStandardPaths::writableLocation(QStandardPaths::MusicLocation)
+            + QDir::separator() + recordingFileDirName;
+
+    if(!QDir(recordingPath).exists())
+        QDir().mkdir(recordingPath);
 
     QString recordingFileName = "part" + QString::number(prgNum)
             + audioExtension;
+    auto myThing = QStandardPaths::MusicLocation;
     recordingLocation = QUrl::fromUserInput(recordingFileName,
-                                            recordingFileDirName,
+                                            recordingPath,
                                             QUrl::UserInputResolutionOption::AssumeLocalFile);
 }

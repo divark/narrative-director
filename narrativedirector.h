@@ -13,6 +13,7 @@
 #include <QDateTime>
 #include <QTime>
 #include <QMessageBox>
+#include <QStandardPaths>
 #include "preferences.h"
 
 namespace Ui {
@@ -84,7 +85,7 @@ private:
     QTextStream narrativeInput;
     qint64 filePos = 0;
     QString currentProjectFile;
-    bool hasChanged;
+    bool hasChanged = false;
     QString audioExtension;
 
     void closeEvent(QCloseEvent *event) override;
