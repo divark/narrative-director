@@ -43,6 +43,7 @@ public:
     bool isEndOfSentence(QChar);
     void saveToProjectFile(QString);
     void loadFromProjectFile(QString);
+    void updatePlayerLocation();
 
     ~NarrativeDirector() override;
 
