@@ -66,12 +66,21 @@ void NarrativeDirector::updateAEnd(int duration) {
 
 void NarrativeDirector::on_recordBtn_clicked()
 {
-    if(QFileInfo(recordingLocation.path()).exists()) {
-        QFile recordingFile(recordingLocation.path());
+#ifdef _WIN32
+    auto filePath = recordingLocation.toLocalFile().toStdString().c_str();
+    auto fileAttributes = GetFileAttributesA(filePath);
+
+    if(fileAttributes != INVALID_FILE_ATTRIBUTES) {
+        DeleteFileA(filePath);
+        audioPlayer->setMedia(nullptr);
+    }
+#else
+    if(QFileInfo(recordingLocation.toLocalFile()).exists()) {
+        QFile recordingFile(recordingLocation.toLocalFile());
 
         recordingFile.remove();
     }
-
+#endif
     updateRecordingLocation();
 
     audioRecorder->setOutputLocation(recordingLocation);
@@ -124,7 +133,7 @@ void NarrativeDirector::on_backBtn_clicked()
         prgNum--;
         updateRecordingLocation();
 
-        if(QFileInfo(recordingLocation.path()).exists())
+        if(QFileInfo(recordingLocation.toLocalFile()).exists())
             audioPlayer->setMedia(recordingLocation);
         else
             audioPlayer->setMedia(nullptr);
@@ -145,7 +154,7 @@ void NarrativeDirector::on_nextBtn_clicked()
         prgNum++;
         updateRecordingLocation();
 
-        if(QFileInfo(recordingLocation.path()).exists())
+        if(QFileInfo(recordingLocation.toLocalFile()).exists())
             audioPlayer->setMedia(recordingLocation);
         else
             audioPlayer->setMedia(nullptr);
@@ -202,7 +211,7 @@ void NarrativeDirector::on_actionOpen_triggered()
 
     changeParagraphLbl(prgNum);
     updateRecordingLocation();
-    if(QFileInfo(recordingLocation.path()).exists())
+    if(QFileInfo(recordingLocation.toLocalFile()).exists())
         audioPlayer->setMedia(recordingLocation);
 
     ui->recordBtn->setEnabled(true);
@@ -267,6 +276,7 @@ void NarrativeDirector::onMPMediaStatusChanged(QMediaPlayer::MediaStatus mediaSt
     case QMediaPlayer::InvalidMedia:
     case QMediaPlayer::UnknownMediaStatus:
     case QMediaPlayer::NoMedia:
+        if(audioPlayer->media() == nullptr) return;
         recordingDuration = QTime(0, 0, 0, 0);
 
         ui->playBtn->setEnabled(false);
@@ -515,7 +525,7 @@ void NarrativeDirector::updateRecordingLocation() {
 
     QString recordingFileName = "part" + QString::number(prgNum)
             + audioExtension;
-    auto myThing = QStandardPaths::MusicLocation;
+
     recordingLocation = QUrl::fromUserInput(recordingFileName,
                                             recordingPath,
                                             QUrl::UserInputResolutionOption::AssumeLocalFile);

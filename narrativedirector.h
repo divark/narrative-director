@@ -16,6 +16,11 @@
 #include <QStandardPaths>
 #include "preferences.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#include <tchar.h>
+#endif
+
 namespace Ui {
 class NarrativeDirector;
 }
