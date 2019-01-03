@@ -38,9 +38,7 @@ void NarrativeDirector::updateTimeLbl() {
 }
 
 void NarrativeDirector::updateAProgress(int duration) {
-    if (audioRecorder->error() != QAudioRecorder::NoError
-            || audioPlayer->error() != QMediaPlayer::NoError
-            || duration < 1000)
+    if (duration < 1000)
         return;
 
     QTime newTime(0, 0, 0, 0);
@@ -53,9 +51,7 @@ void NarrativeDirector::updateAProgress(int duration) {
 }
 
 void NarrativeDirector::updateAEnd(int duration) {
-    if (audioRecorder->error() != QAudioRecorder::NoError
-            || audioPlayer->error() != QMediaPlayer::NoError
-            || duration < 1000)
+    if (duration < 1000)
         return;
 
     QTime newTime(0, 0, 0, 0);
@@ -267,6 +263,7 @@ void NarrativeDirector::onMPMediaStatusChanged(QMediaPlayer::MediaStatus mediaSt
     case QMediaPlayer::InvalidMedia:
     case QMediaPlayer::UnknownMediaStatus:
     case QMediaPlayer::NoMedia:
+        if(audioRecorder->state() == QAudioRecorder::RecordingState) return;
         recordingDuration = QTime(0, 0, 0, 0);
 
         ui->playBtn->setEnabled(false);
