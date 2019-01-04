@@ -77,6 +77,8 @@ private slots:
 
     void on_actionExport_Parts_File_triggered();
 
+    void on_actionAbout_Narrative_Director_triggered();
+
 private:
     Ui::NarrativeDirector *ui;
     Preferences *preferences;

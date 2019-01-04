@@ -538,18 +538,23 @@ void NarrativeDirector::updatePlayerLocation() {
 
 void NarrativeDirector::on_actionExport_Parts_File_triggered()
 {
+    if(paragraphs.length() == 0) {
+        showErrorMsg("There are no parts files to record.");
+        return;
+    }
+
     QString recordingFileDirName = QFileInfo(narrativeFile.fileName()).fileName();
     recordingFileDirName.chop(4);
 
     QString recordingPath = QStandardPaths::writableLocation(QStandardPaths::MusicLocation)
-            + QDir::separator() + recordingFileDirName;
+            + "/" + recordingFileDirName;
 
-    if(!QDir(recordingPath).exists()) {
+    if(!QDir(recordingPath).exists() || !QFileInfo(recordingPath).isDir()) {
         showErrorMsg("Recording directory not present.");
         return;
     }
 
-    QFile partsFile(recordingPath + QDir::separator() + "parts-list.txt");
+    QFile partsFile(recordingPath + "parts-list.txt");
     if(!partsFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         showErrorMsg("File error for parts-list.txt creation");
         return;
@@ -560,7 +565,7 @@ void NarrativeDirector::on_actionExport_Parts_File_triggered()
         QString recordingFileName = "part" + QString::number(i)
                 + audioExtension;
 
-        fileOutput << "file " << recordingPath << QDir::separator()
+        fileOutput << "file " << recordingPath << "/"
                    << recordingFileName << '\n' << flush;
     }
 
@@ -576,4 +581,14 @@ void NarrativeDirector::showErrorMsg(QString errorMsg) {
     QMessageBox errorPrompt;
     errorPrompt.critical(this, "Error", errorMsg);
     errorPrompt.show();
+}
+
+void NarrativeDirector::on_actionAbout_Narrative_Director_triggered()
+{
+    QMessageBox aboutPrompt;
+    QString aboutText = "Narrative Director is a Qt program written to assist in audio recording."
+                        " It guides the narrator by recording in parts by paragraphs."
+                        " This program uses the MIT license.";
+    aboutPrompt.information(this, "About", aboutText);
+    aboutPrompt.show();
 }
