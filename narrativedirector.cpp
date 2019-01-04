@@ -277,9 +277,12 @@ void NarrativeDirector::onMPMediaStatusChanged(QMediaPlayer::MediaStatus mediaSt
 
 void NarrativeDirector::changeParagraphLbl(int prgIndex) {
     std::stringstream prgStream;
+    QString paragraph = getParagraph(prgIndex);
+    if(ui->actionSimplify->isChecked())
+        paragraph = paragraph.simplified();
 
     prgStream << "Paragraph " << prgIndex + 1;
-    ui->prgText->setPlainText(getParagraph(prgIndex));
+    ui->prgText->setPlainText(paragraph);
     ui->prgLbl->setText(QString::fromStdString(prgStream.str()));
 }
 
@@ -294,7 +297,7 @@ QString NarrativeDirector::getParagraphFromFile(qint64 location) {
     }
     filePos = location;
 
-    return myParagraph.simplified();
+    return myParagraph;
 }
 
 QString NarrativeDirector::getSentenceFromFile(qint64& location) {
@@ -591,4 +594,10 @@ void NarrativeDirector::on_actionAbout_Narrative_Director_triggered()
                         " This program uses the MIT license.";
     aboutPrompt.information(this, "About", aboutText);
     aboutPrompt.show();
+}
+
+void NarrativeDirector::on_actionSimplify_triggered()
+{
+    if(paragraphs.length() == 0) return;
+    changeParagraphLbl(prgNum);
 }

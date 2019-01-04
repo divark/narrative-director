@@ -79,6 +79,8 @@ private slots:
 
     void on_actionAbout_Narrative_Director_triggered();
 
+    void on_actionSimplify_triggered();
+
 private:
     Ui::NarrativeDirector *ui;
     Preferences *preferences;
