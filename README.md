@@ -9,9 +9,10 @@ Narrative Director is an audio recording program that I was inspired to make for
 ## Features
 - Reads from .txt files.
 - Shows paragraphs with navigation buttons to go forward and backward.
-- Records and plays audio that are processed.
+- Records and plays audio that are processed with timer.
 - Able to specify audio format, microphone input, and more via Preferences.
 - Can handle very large files too!
+- Generates file to be used with ffmpeg to fuse all the parts together for one, perfect cut.
 
 ## Installing
 This program requires the use of ffmpeg. For Windows, there is a helpful [wikihow](https://www.wikihow.com/Install-FFmpeg-on-Windows) article for installation.
