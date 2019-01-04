@@ -270,6 +270,8 @@ void NarrativeDirector::onMPMediaStatusChanged(QMediaPlayer::MediaStatus mediaSt
         ui->stopBtn->setEnabled(false);
         updateTimeLbl();
         qDebug() << recordingLocation.path() << " Cannot be played.";
+    default:
+        break;
     }
 }
 
@@ -532,4 +534,46 @@ void NarrativeDirector::updatePlayerLocation() {
         audioPlayer->setMedia(recordingLocation);
     else
         audioPlayer->setMedia(nullptr);
+}
+
+void NarrativeDirector::on_actionExport_Parts_File_triggered()
+{
+    QString recordingFileDirName = QFileInfo(narrativeFile.fileName()).fileName();
+    recordingFileDirName.chop(4);
+
+    QString recordingPath = QStandardPaths::writableLocation(QStandardPaths::MusicLocation)
+            + QDir::separator() + recordingFileDirName;
+
+    if(!QDir(recordingPath).exists()) {
+        showErrorMsg("Recording directory not present.");
+        return;
+    }
+
+    QFile partsFile(recordingPath + QDir::separator() + "parts-list.txt");
+    if(!partsFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        showErrorMsg("File error for parts-list.txt creation");
+        return;
+    }
+
+    QTextStream fileOutput(&partsFile);
+    for(int i = 0; i < paragraphs.length(); i++) {
+        QString recordingFileName = "part" + QString::number(i)
+                + audioExtension;
+
+        fileOutput << "file " << recordingPath << QDir::separator()
+                   << recordingFileName << '\n' << flush;
+    }
+
+    QMessageBox donePrompt;
+    donePrompt.information(this, "Success", "parts-list.txt created successfully.");
+    donePrompt.show();
+
+    partsFile.close();
+}
+
+
+void NarrativeDirector::showErrorMsg(QString errorMsg) {
+    QMessageBox errorPrompt;
+    errorPrompt.critical(this, "Error", errorMsg);
+    errorPrompt.show();
 }

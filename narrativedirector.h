@@ -75,6 +75,8 @@ private slots:
     void updateAProgress(int pos);
     void updateAEnd(int pos);
 
+    void on_actionExport_Parts_File_triggered();
+
 private:
     Ui::NarrativeDirector *ui;
     Preferences *preferences;
@@ -96,6 +98,7 @@ private:
 
     void closeEvent(QCloseEvent *event) override;
     bool promptIfNotSaved();
+    void showErrorMsg(QString);
 };
 
 #endif // NARRATIVEDIRECTOR_H
