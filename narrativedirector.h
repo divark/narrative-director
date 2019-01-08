@@ -36,10 +36,12 @@ public:
     void updateTimeLbl();
     void updateRecordingLocation();
     //void setPartsDir(QString);
+    uint getNumPrgs();
     QString getParagraphFromFile(qint64);
     QString getParagraph(int);
     QString getSentenceFromFile(qint64&);
-    void getToStartOfNextSentence(QString&, qint64&);
+    void appendUntilNextSentence(QString&, qint64&);
+    void getToStartOfNextSentence();
     bool isEndOfSentence(QChar);
     void saveToProjectFile(QString);
     void loadFromProjectFile(QString);
@@ -103,6 +105,7 @@ private:
     void closeEvent(QCloseEvent *event) override;
     bool promptIfNotSaved();
     void showErrorMsg(QString);
+    QString getRecordingPath();
 };
 
 #endif // NARRATIVEDIRECTOR_H

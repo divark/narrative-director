@@ -156,6 +156,7 @@ void NarrativeDirector::on_actionNew_triggered()
     if(!promptIfNotSaved())
         return;
 
+    currentProjectFile = nullptr;
     QString fileName = QFileDialog::getOpenFileName(
                 this,
                 tr("Open Text File"),
@@ -174,6 +175,9 @@ void NarrativeDirector::on_actionNew_triggered()
     prgNum = 0;
     filePos = 0;
     narrativeInput.setDevice(&narrativeFile);
+    paragraphs.clear();
+    paragraphs.squeeze();
+    paragraphs.reserve(getNumPrgs());
 
     changeParagraphLbl(prgNum);
     updateRecordingLocation();
@@ -195,6 +199,8 @@ void NarrativeDirector::on_actionOpen_triggered()
 
     if(fileName.isNull()) return;
 
+    paragraphs.clear();
+    paragraphs.squeeze();
     loadFromProjectFile(fileName);
 
     changeParagraphLbl(prgNum);
@@ -269,7 +275,7 @@ void NarrativeDirector::onMPMediaStatusChanged(QMediaPlayer::MediaStatus mediaSt
         ui->playBtn->setEnabled(false);
         ui->stopBtn->setEnabled(false);
         updateTimeLbl();
-        qDebug() << recordingLocation.path() << " Cannot be played.";
+        break;
     default:
         break;
     }
@@ -281,7 +287,8 @@ void NarrativeDirector::changeParagraphLbl(int prgIndex) {
     if(ui->actionSimplify->isChecked())
         paragraph = paragraph.simplified();
 
-    prgStream << "Paragraph " << prgIndex + 1;
+    prgStream << "Paragraph " << prgIndex + 1 <<
+                 "/" << paragraphs.capacity();
     ui->prgText->setPlainText(paragraph);
     ui->prgLbl->setText(QString::fromStdString(prgStream.str()));
 }
@@ -297,7 +304,7 @@ QString NarrativeDirector::getParagraphFromFile(qint64 location) {
     }
     filePos = location;
 
-    return myParagraph;
+    return myParagraph.trimmed();
 }
 
 QString NarrativeDirector::getSentenceFromFile(qint64& location) {
@@ -312,7 +319,7 @@ QString NarrativeDirector::getSentenceFromFile(qint64& location) {
 
         location = narrativeInput.pos();
         if(isEndOfSentence(currentLetter)) {
-            getToStartOfNextSentence(sentence, location);
+            appendUntilNextSentence(sentence, location);
             break;
         }
     }
@@ -324,7 +331,7 @@ bool NarrativeDirector::isEndOfSentence(QChar letter) {
     return (letter == '!' || letter == '?' || letter == '.');
 }
 
-void NarrativeDirector::getToStartOfNextSentence(QString& sentence, qint64& location) {
+void NarrativeDirector::appendUntilNextSentence(QString& sentence, qint64& location) {
     while(1) {
         if(!narrativeInput.seek(location)) break;
 
@@ -366,7 +373,7 @@ QString NarrativeDirector::getParagraph(int paragraphNum) {
     paragraphs.push_back(prgEntry);
     hasChanged = true;
 
-    return paragraph;
+    return paragraph.trimmed();
 }
 
 void NarrativeDirector::saveToProjectFile(QString filePath) {
@@ -375,6 +382,7 @@ void NarrativeDirector::saveToProjectFile(QString filePath) {
         return;
 
     QTextStream fileOutput(&outputProjFile);
+    fileOutput << paragraphs.capacity() << '\n' << flush;
     for(auto prgPair : paragraphs)
         fileOutput << prgPair.first << ",";
     fileOutput << '\n' << flush;
@@ -391,6 +399,9 @@ void NarrativeDirector::loadFromProjectFile(QString filePath) {
         return;
 
     QTextStream prjInput(&openedProjectFile);
+
+    //Number of paragraphs total.
+    paragraphs.reserve(prjInput.readLine().toInt());
 
     //Known paragraph locations
     QString prgStarts = prjInput.readLine();
@@ -509,11 +520,7 @@ void NarrativeDirector::on_actionPreferences_triggered()
 }
 
 void NarrativeDirector::updateRecordingLocation() {    
-    QString recordingFileDirName = QFileInfo(narrativeFile.fileName()).fileName();
-    recordingFileDirName.chop(4);
-
-    QString recordingPath = QStandardPaths::writableLocation(QStandardPaths::MusicLocation)
-            + QDir::separator() + recordingFileDirName;
+    QString recordingPath = getRecordingPath();
 
     if(!QDir(recordingPath).exists())
         QDir().mkdir(recordingPath);
@@ -546,18 +553,14 @@ void NarrativeDirector::on_actionExport_Parts_File_triggered()
         return;
     }
 
-    QString recordingFileDirName = QFileInfo(narrativeFile.fileName()).fileName();
-    recordingFileDirName.chop(4);
-
-    QString recordingPath = QStandardPaths::writableLocation(QStandardPaths::MusicLocation)
-            + "/" + recordingFileDirName;
+    QString recordingPath = getRecordingPath();
 
     if(!QDir(recordingPath).exists() || !QFileInfo(recordingPath).isDir()) {
         showErrorMsg("Recording directory not present.");
         return;
     }
 
-    QFile partsFile(recordingPath + "parts-list.txt");
+    QFile partsFile(recordingPath + "/" + "parts-list.txt");
     if(!partsFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         showErrorMsg("File error for parts-list.txt creation");
         return;
@@ -600,4 +603,47 @@ void NarrativeDirector::on_actionSimplify_triggered()
 {
     if(paragraphs.length() == 0) return;
     changeParagraphLbl(prgNum);
+}
+
+QString NarrativeDirector::getRecordingPath() {
+    QString recordingFileDirName = QFileInfo(narrativeFile.fileName()).fileName();
+    recordingFileDirName.chop(4);
+
+    QString recordingPath = QStandardPaths::writableLocation(QStandardPaths::MusicLocation)
+            + "/" + recordingFileDirName;
+
+    return recordingPath;
+}
+
+uint NarrativeDirector::getNumPrgs() {
+    uint numPrgs = 1;
+    uint numSents = 1;
+    narrativeInput.seek(0);
+
+    while(!narrativeInput.atEnd()) {
+        QString currentChar = narrativeInput.read(1);
+        if(!isEndOfSentence(currentChar.front())) continue;
+
+        if(++numSents % 4 == 0) numPrgs++;
+        getToStartOfNextSentence();
+    }
+
+    narrativeInput.seek(0);
+    filePos = narrativeInput.pos();
+
+    return numPrgs;
+}
+
+void NarrativeDirector::getToStartOfNextSentence() {
+    while(!narrativeInput.atEnd()) {
+        QChar currentLetter = narrativeInput.read(1).front();
+
+        if(currentLetter == '"' or currentLetter == '\''
+                or currentLetter == "”" or currentLetter == '`') {
+            continue;
+        }
+
+        if(!isEndOfSentence(currentLetter))
+            break;
+    }
 }
