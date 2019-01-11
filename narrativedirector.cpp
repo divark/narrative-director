@@ -176,8 +176,7 @@ void NarrativeDirector::on_actionNew_triggered()
     filePos = 0;
     narrativeInput.setDevice(&narrativeFile);
     paragraphs.clear();
-    paragraphs.squeeze();
-    paragraphs.reserve(getNumPrgs());
+    prgNumTotal = getNumPrgs();
 
     changeParagraphLbl(prgNum);
     updateRecordingLocation();
@@ -288,7 +287,7 @@ void NarrativeDirector::changeParagraphLbl(int prgIndex) {
         paragraph = paragraph.simplified();
 
     prgStream << "Paragraph " << prgIndex + 1 <<
-                 "/" << paragraphs.capacity();
+                 "/" << prgNumTotal;
     ui->prgText->setPlainText(paragraph);
     ui->prgLbl->setText(QString::fromStdString(prgStream.str()));
 }
@@ -310,14 +309,13 @@ QString NarrativeDirector::getParagraphFromFile(qint64 location) {
 QString NarrativeDirector::getSentenceFromFile(qint64& location) {
     QString sentence = "";
 
-    while(1) {
-        if(!narrativeInput.seek(location)) break;
-
+    narrativeInput.seek(location);
+    while(!narrativeInput.atEnd()) {
         QChar currentLetter = narrativeInput.read(1).front();
-        if(narrativeInput.atEnd()) break;
-        sentence.append(currentLetter);
 
+        sentence.append(currentLetter);
         location = narrativeInput.pos();
+
         if(isEndOfSentence(currentLetter)) {
             appendUntilNextSentence(sentence, location);
             break;
@@ -328,22 +326,23 @@ QString NarrativeDirector::getSentenceFromFile(qint64& location) {
 }
 
 bool NarrativeDirector::isEndOfSentence(QChar letter) {
-    return (letter == '!' || letter == '?' || letter == '.');
+    return letter == '!' || letter == '?' || letter == '.';
+}
+
+bool NarrativeDirector::isEndOfQuote(QChar letter) {
+    return letter == '"' or letter == '\''
+              or letter == "”" or letter == '`';
 }
 
 void NarrativeDirector::appendUntilNextSentence(QString& sentence, qint64& location) {
-    while(1) {
-        if(!narrativeInput.seek(location)) break;
+    narrativeInput.seek(location);
 
+    while(!narrativeInput.atEnd()) {
         QChar currentLetter = narrativeInput.read(1).front();
-        if(narrativeInput.atEnd()) break;
 
-        if(!isEndOfSentence(currentLetter)) {
-            if(currentLetter == '"' or currentLetter == '\''
-                    or currentLetter == "”" or currentLetter == '`') {
-                sentence.append(currentLetter);
-                location = narrativeInput.pos();
-            }
+        if(isEndOfQuote(currentLetter) || !isEndOfSentence(currentLetter)) {
+            sentence.append(currentLetter);
+            location = narrativeInput.pos();
             break;
         }
 
@@ -382,7 +381,7 @@ void NarrativeDirector::saveToProjectFile(QString filePath) {
         return;
 
     QTextStream fileOutput(&outputProjFile);
-    fileOutput << paragraphs.capacity() << '\n' << flush;
+    fileOutput << prgNumTotal << '\n' << flush;
     for(auto prgPair : paragraphs)
         fileOutput << prgPair.first << ",";
     fileOutput << '\n' << flush;
@@ -401,7 +400,8 @@ void NarrativeDirector::loadFromProjectFile(QString filePath) {
     QTextStream prjInput(&openedProjectFile);
 
     //Number of paragraphs total.
-    paragraphs.reserve(prjInput.readLine().toInt());
+    prgNumTotal = prjInput.readLine().toUInt();
+    //paragraphs.reserve(prjInput.readLine().toInt());
 
     //Known paragraph locations
     QString prgStarts = prjInput.readLine();
@@ -422,22 +422,6 @@ void NarrativeDirector::loadFromProjectFile(QString filePath) {
     if(!narrativeFile.open(QIODevice::ReadOnly | QIODevice::Text))
         return;
     this->narrativeInput.setDevice(&narrativeFile);
-
-    //File last modified check.
-//    fileLastModifed = QDateTime::fromString(prjInput.readLine());
-//    QDateTime currentLastModified = QFileInfo(narrativeFile).lastModified();
-
-//    if(QFileInfo(narrativeFile).lastModified() != fileLastModifed) {
-//        std::string warningMessage = narrativeFile.fileName().toStdString();
-//        warningMessage.append(" has been modified.");
-//        QMessageBox::information(
-//                    this,
-//                    tr("NarrativeDirector"),
-//                    tr(warningMessage.c_str())
-//        );
-
-//        fileLastModifed = currentLastModified;
-//    }
 
     //Audio extension for parts
     audioExtension = prjInput.readLine();
@@ -638,12 +622,7 @@ void NarrativeDirector::getToStartOfNextSentence() {
     while(!narrativeInput.atEnd()) {
         QChar currentLetter = narrativeInput.read(1).front();
 
-        if(currentLetter == '"' or currentLetter == '\''
-                or currentLetter == "”" or currentLetter == '`') {
-            continue;
-        }
-
-        if(!isEndOfSentence(currentLetter))
-            break;
+        if(isEndOfQuote(currentLetter)) continue;
+        if(!isEndOfSentence(currentLetter)) break;
     }
 }

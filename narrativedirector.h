@@ -43,6 +43,7 @@ public:
     void appendUntilNextSentence(QString&, qint64&);
     void getToStartOfNextSentence();
     bool isEndOfSentence(QChar);
+    bool isEndOfQuote(QChar);
     void saveToProjectFile(QString);
     void loadFromProjectFile(QString);
     void updatePlayerLocation();
@@ -94,6 +95,7 @@ private:
 
     QVector<std::pair<int, QString>> paragraphs;
     int prgNum = 0;
+    uint prgNumTotal = 0;
 
     QFile narrativeFile;
     QTextStream narrativeInput;
