@@ -42,8 +42,8 @@ public:
     QString getSentenceFromFile(qint64&);
     void appendUntilNextSentence(QString&, qint64&);
     void getToStartOfNextSentence();
-    bool isEndOfSentence(QChar);
-    bool isEndOfQuote(QChar);
+    bool isEndOfSentence(QString);
+    bool isEndOfQuote(QString);
     void saveToProjectFile(QString);
     void loadFromProjectFile(QString);
     void updatePlayerLocation();

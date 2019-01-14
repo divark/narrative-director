@@ -311,7 +311,7 @@ QString NarrativeDirector::getSentenceFromFile(qint64& location) {
 
     narrativeInput.seek(location);
     while(!narrativeInput.atEnd()) {
-        QChar currentLetter = narrativeInput.read(1).front();
+        QString currentLetter = narrativeInput.read(1);
 
         sentence.append(currentLetter);
         location = narrativeInput.pos();
@@ -325,13 +325,13 @@ QString NarrativeDirector::getSentenceFromFile(qint64& location) {
     return sentence;
 }
 
-bool NarrativeDirector::isEndOfSentence(QChar letter) {
-    return letter == '!' || letter == '?' || letter == '.';
+bool NarrativeDirector::isEndOfSentence(QString letter) {
+    return letter == "!" || letter == "?" || letter == ".";
 }
 
-bool NarrativeDirector::isEndOfQuote(QChar letter) {
-    return letter == '"' or letter == '\''
-              or letter == "”" or letter == '`';
+bool NarrativeDirector::isEndOfQuote(QString letter) {
+    return letter == "\"" or letter == "'"
+              or letter == "”" or letter == "`";
 }
 
 void NarrativeDirector::appendUntilNextSentence(QString& sentence, qint64& location) {
@@ -460,18 +460,9 @@ void NarrativeDirector::on_actionSave_triggered()
 }
 
 void NarrativeDirector::closeEvent(QCloseEvent *event) {
-    if(hasChanged) {
-        QMessageBox::StandardButton exitBtn = QMessageBox::question(
-                    this, "NarrativeDirector",
-                    tr("You have unsaved changes. Would you like to save?\n"),
-                    QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes);
-
-        if(exitBtn == QMessageBox::Yes)
-            on_actionSave_triggered();
-        else if(exitBtn == QMessageBox::Cancel) {
-            event->ignore();
-            return;
-        }
+    if(!promptIfNotSaved()) {
+        event->ignore();
+        return;
     }
 
     event->accept();
@@ -495,6 +486,7 @@ bool NarrativeDirector::promptIfNotSaved() {
     narrativeInput.flush();
     narrativeInput.reset();
     paragraphs.clear();
+    paragraphs.squeeze();
     return true;
 }
 
@@ -600,13 +592,13 @@ QString NarrativeDirector::getRecordingPath() {
 }
 
 uint NarrativeDirector::getNumPrgs() {
-    uint numPrgs = 1;
+    uint numPrgs = 0;
     uint numSents = 1;
     narrativeInput.seek(0);
 
     while(!narrativeInput.atEnd()) {
         QString currentChar = narrativeInput.read(1);
-        if(!isEndOfSentence(currentChar.front())) continue;
+        if(!isEndOfSentence(currentChar)) continue;
 
         if(++numSents % 4 == 0) numPrgs++;
         getToStartOfNextSentence();
@@ -620,7 +612,7 @@ uint NarrativeDirector::getNumPrgs() {
 
 void NarrativeDirector::getToStartOfNextSentence() {
     while(!narrativeInput.atEnd()) {
-        QChar currentLetter = narrativeInput.read(1).front();
+        QString currentLetter = narrativeInput.read(1);
 
         if(isEndOfQuote(currentLetter)) continue;
         if(!isEndOfSentence(currentLetter)) break;
