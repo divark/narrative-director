@@ -20,6 +20,9 @@ NarrativeDirector::NarrativeDirector(QWidget *parent) :
     connect(audioPlayer, &QMediaPlayer::stateChanged, this, &NarrativeDirector::onMPStateChanged);
     connect(audioPlayer, &QMediaPlayer::mediaStatusChanged, this, &NarrativeDirector::onMPMediaStatusChanged);
     connect(audioPlayer, &QMediaPlayer::positionChanged, this, &NarrativeDirector::updateAProgress);
+
+    connect(audioRecorder, QOverload<QMediaRecorder::Error>::of(&QAudioRecorder::error), this,
+            &NarrativeDirector::displayErrorMessage);
 }
 
 NarrativeDirector::~NarrativeDirector()
@@ -38,8 +41,7 @@ void NarrativeDirector::updateTimeLbl() {
 }
 
 void NarrativeDirector::updateAProgress(int duration) {
-    if (duration < 1000)
-        return;
+    if (duration < 1000) return;
 
     QTime newTime(0, 0, 0, 0);
     recordingPosition = newTime.addMSecs(duration);
@@ -51,8 +53,7 @@ void NarrativeDirector::updateAProgress(int duration) {
 }
 
 void NarrativeDirector::updateAEnd(int duration) {
-    if (duration < 1000)
-        return;
+    if (duration < 1000) return;
 
     QTime newTime(0, 0, 0, 0);
     recordingDuration = newTime.addMSecs(duration);
@@ -259,7 +260,7 @@ void NarrativeDirector::onMPStateChanged(QMediaPlayer::State state)
 void NarrativeDirector::onMPMediaStatusChanged(QMediaPlayer::MediaStatus mediaStatus) {
     switch (mediaStatus) {
     case QMediaPlayer::LoadedMedia:
-        recordingDuration = QTime(0, 0, 0, 0).addMSecs(audioPlayer->duration());
+        recordingDuration = QTime(0, 0, 0, 0).addMSecs(static_cast<int>(audioPlayer->duration()));
 
         ui->playBtn->setEnabled(true);
         ui->stopBtn->setEnabled(true);
@@ -551,13 +552,12 @@ void NarrativeDirector::on_actionExport_Parts_File_triggered()
                    << recordingFileName << '\n' << flush;
     }
 
+    partsFile.close();
+
     QMessageBox donePrompt;
     donePrompt.information(this, "Success", "parts-list.txt created successfully.");
     donePrompt.show();
-
-    partsFile.close();
 }
-
 
 void NarrativeDirector::showErrorMsg(QString errorMsg) {
     QMessageBox errorPrompt;
@@ -617,4 +617,8 @@ void NarrativeDirector::getToStartOfNextSentence() {
         if(isEndOfQuote(currentLetter)) continue;
         if(!isEndOfSentence(currentLetter)) break;
     }
+}
+
+void NarrativeDirector::displayErrorMessage() {
+    showErrorMsg(audioRecorder->errorString());
 }

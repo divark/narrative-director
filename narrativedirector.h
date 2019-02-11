@@ -14,6 +14,7 @@
 #include <QTime>
 #include <QMessageBox>
 #include <QStandardPaths>
+#include <QBuffer>
 #include "preferences.h"
 
 #ifdef _WIN32
@@ -68,7 +69,7 @@ private slots:
     void onARStateChanged(QAudioRecorder::State);
     void onMPStateChanged(QMediaPlayer::State);
     void onMPMediaStatusChanged(QMediaPlayer::MediaStatus);
-    //void displayErrorMessage();
+    void displayErrorMessage();
 
     void on_actionSave_As_triggered();
 
