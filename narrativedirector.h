@@ -14,7 +14,6 @@
 #include <QTime>
 #include <QMessageBox>
 #include <QStandardPaths>
-#include <QBuffer>
 #include "preferences.h"
 
 #ifdef _WIN32
