@@ -44,7 +44,7 @@ public:
     void getToStartOfNextSentence();
     bool isEndOfSentence(QString);
     bool isEndOfQuote(QString);
-    void saveToProjectFile(QString);
+    void saveToProjectFile();
     void loadFromProjectFile(QString);
     void updatePlayerLocation();
 
@@ -59,8 +59,6 @@ private slots:
 
     void on_nextBtn_clicked();
 
-    void on_actionNew_triggered();
-
     void on_actionOpen_triggered();
 
     void on_stopBtn_clicked();
@@ -69,8 +67,6 @@ private slots:
     void onMPStateChanged(QMediaPlayer::State);
     void onMPMediaStatusChanged(QMediaPlayer::MediaStatus);
     void displayErrorMessage();
-
-    void on_actionSave_As_triggered();
 
     void on_actionSave_triggered();
 
@@ -108,6 +104,7 @@ private:
     bool promptIfNotSaved();
     void showErrorMsg(QString);
     QString getRecordingPath();
+    QString getNonExtensionFileName();
 };
 
 #endif // NARRATIVEDIRECTOR_H
