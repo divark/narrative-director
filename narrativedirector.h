@@ -25,60 +25,49 @@ namespace Ui {
 class NarrativeDirector;
 }
 
-class NarrativeDirector : public QMainWindow
-{
+class NarrativeDirector : public QMainWindow {
     Q_OBJECT
 
 public:
     explicit NarrativeDirector(QWidget *parent = nullptr);
 
     void changeParagraphLbl(int);
-    void updateTimeLbl();
-    void updateRecordingLocation();
-    //void setPartsDir(QString);
     uint getNumPrgs();
     QString getParagraphFromFile(qint64);
     QString getParagraph(int);
     QString getSentenceFromFile(qint64&);
-    void appendUntilNextSentence(QString&, qint64&);
-    void getToStartOfNextSentence();
-    bool isEndOfSentence(QString);
-    bool isEndOfQuote(QString);
-    void saveToProjectFile();
-    void loadFromProjectFile(QString);
+
+    void updateTimeLbl();
+    void updateRecordingLocation();
     void updatePlayerLocation();
+
+    void saveToProjectFile();
+    void loadFromProjectFile(const QString&);
 
     ~NarrativeDirector() override;
 
 private slots:
-    void on_recordBtn_clicked();
-
-    void on_playBtn_clicked();
-
-    void on_backBtn_clicked();
-
-    void on_nextBtn_clicked();
-
     void on_actionOpen_triggered();
-
-    void on_stopBtn_clicked();
+    void on_actionSave_triggered();
+    void on_actionExport_Parts_File_triggered();
+    void on_actionPreferences_triggered();
+    void on_actionSimplify_triggered();
+    void on_actionAbout_Narrative_Director_triggered();
 
     void onARStateChanged(QAudioRecorder::State);
-    void onMPStateChanged(QMediaPlayer::State);
-    void onMPMediaStatusChanged(QMediaPlayer::MediaStatus);
-    void displayErrorMessage();
-
-    void on_actionSave_triggered();
-
-    void on_actionPreferences_triggered();
     void updateAProgress(int pos);
     void updateAEnd(int pos);
 
-    void on_actionExport_Parts_File_triggered();
+    void onMPStateChanged(QMediaPlayer::State);
+    void onMPMediaStatusChanged(QMediaPlayer::MediaStatus);
 
-    void on_actionAbout_Narrative_Director_triggered();
+    void on_recordBtn_clicked();
+    void on_playBtn_clicked();
+    void on_stopBtn_clicked();
+    void on_backBtn_clicked();
+    void on_nextBtn_clicked();
 
-    void on_actionSimplify_triggered();
+    void displayErrorMessage();
 
 private:
     Ui::NarrativeDirector *ui;
@@ -100,11 +89,19 @@ private:
     bool hasChanged = false;
     QString audioExtension;
 
-    void closeEvent(QCloseEvent *event) override;
-    bool promptIfNotSaved();
-    void showErrorMsg(QString);
+    void updatePlayerInfo();
+    void cleanPrgs();
+
     QString getRecordingPath();
     QString getNonExtensionFileName();
+    bool promptIfNotSaved();
+
+    bool isEndOfSentence(const QString&);
+    bool isEndOfQuote(const QString&);
+    void appendUntilNextSentence(QString&, qint64&);
+
+    void closeEvent(QCloseEvent *event) override;
+    void showErrorMsg(const QString&);
 };
 
 #endif // NARRATIVEDIRECTOR_H

@@ -74,10 +74,9 @@ void Preferences::on_buttonBox_accepted()
     settings.setChannelCount(selectedChannelCount);
     globalSettings.setValue("preferences/channelCount", selectedChannelCount);
     settings.setQuality(QMultimedia::VeryHighQuality);
-    QString container = selectedContainer;
     globalSettings.setValue("preferences/container", selectedContainer);
 
-    recorder->setEncodingSettings(settings, QVideoEncoderSettings(), container);
+    recorder->setEncodingSettings(settings, QVideoEncoderSettings(), selectedContainer);
 }
 
 void Preferences::populateFromGlobals() {
