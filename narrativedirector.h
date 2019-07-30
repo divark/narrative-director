@@ -69,6 +69,8 @@ private slots:
 
     void displayErrorMessage();
 
+    void on_actionGo_To_triggered();
+
 private:
     Ui::NarrativeDirector *ui;
     Preferences *preferences;

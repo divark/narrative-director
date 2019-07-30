@@ -1,6 +1,8 @@
 #include "narrativedirector.h"
 #include "ui_narrativedirector.h"
 
+#include <QInputDialog>
+
 NarrativeDirector::NarrativeDirector(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::NarrativeDirector)
@@ -595,4 +597,21 @@ uint NarrativeDirector::getNumPrgs() {
     filePos = narrativeInput.pos();
 
     return numPrgs;
+}
+
+void NarrativeDirector::on_actionGo_To_triggered() {
+    if (paragraphs.length() == 0) return;
+    bool isOkay = false;
+    int paragraphNum = QInputDialog::getInt(this, tr("Goto Paragraph"), tr("Paragraph Number:"), 1, 1, paragraphs.length(), 1, &isOkay);
+
+    if(!isOkay) return;
+
+    int oldPrgNum = prgNum;
+    try {
+        prgNum = paragraphNum - 1;
+        updatePlayerInfo();
+    } catch(std::string &myError) {
+        prgNum = oldPrgNum;
+        qDebug() << QString::fromStdString(myError);
+    }
 }
