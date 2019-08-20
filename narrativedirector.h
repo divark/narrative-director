@@ -55,8 +55,8 @@ class NarrativeDirector : public QMainWindow {
     void on_actionAbout_Narrative_Director_triggered();
 
     void onARStateChanged(QAudioRecorder::State);
-    void updateAProgress(int pos);
-    void updateAEnd(int pos);
+    void updateAProgress(int);
+    void updateAEnd(int);
 
     void onMPStateChanged(QMediaPlayer::State);
     void onMPMediaStatusChanged(QMediaPlayer::MediaStatus);
@@ -98,8 +98,8 @@ class NarrativeDirector : public QMainWindow {
     QString getNonExtensionFileName();
     bool promptIfNotSaved();
 
-    bool isEndOfSentence(const QString &);
-    bool isEndOfQuote(const QString &);
+    bool isEndOfSentence(const QChar &);
+    bool isEndOfQuote(const QChar &);
     void appendUntilNextSentence(QString &, qint64 &);
 
     void closeEvent(QCloseEvent *event) override;

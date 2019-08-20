@@ -396,7 +396,7 @@ QString NarrativeDirector::getSentenceFromFile(qint64 &location) {
 
     narrativeInput.seek(location);
     while (!narrativeInput.atEnd()) {
-        QString currentLetter = narrativeInput.read(1);
+        QChar currentLetter = narrativeInput.read(1).front();
 
         sentence.append(currentLetter);
         location = narrativeInput.pos();
@@ -410,11 +410,11 @@ QString NarrativeDirector::getSentenceFromFile(qint64 &location) {
     return sentence;
 }
 
-bool NarrativeDirector::isEndOfSentence(const QString &letter) {
+bool NarrativeDirector::isEndOfSentence(const QChar &letter) {
     return letter == "!" || letter == "?" || letter == ".";
 }
 
-bool NarrativeDirector::isEndOfQuote(const QString &letter) {
+bool NarrativeDirector::isEndOfQuote(const QChar &letter) {
     return letter == "\"" or letter == "'" or letter == "”" or letter == "`";
 }
 
@@ -427,13 +427,13 @@ void NarrativeDirector::appendUntilNextSentence(QString &sentence,
 
         if (isEndOfQuote(currentLetter) || !isEndOfSentence(currentLetter)) {
             sentence.append(currentLetter);
-            location = narrativeInput.pos();
             break;
         }
 
         sentence.append(currentLetter);
-        location = narrativeInput.pos();
     }
+
+    location = narrativeInput.pos();
 }
 
 QString NarrativeDirector::getParagraph(int paragraphNum) {
@@ -601,7 +601,7 @@ uint NarrativeDirector::getNumPrgs() {
     bool seenEndOfSentence = false;
 
     while (!narrativeInput.atEnd()) {
-        QString currentChar = narrativeInput.read(1);
+        QChar currentChar = narrativeInput.read(1).front();
         if (!isEndOfSentence(currentChar)) {
             seenEndOfSentence = false;
             continue;
