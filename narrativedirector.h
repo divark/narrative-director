@@ -100,7 +100,7 @@ class NarrativeDirector : public QMainWindow {
 
     bool isEndOfSentence(const QChar &);
     bool isEndOfQuote(const QChar &);
-    void appendUntilNextSentence(QString &, qint64 &);
+    void appendUntilNextSentence(QString &);
 
     void closeEvent(QCloseEvent *event) override;
     void showErrorMsg(const QString &);
