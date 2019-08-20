@@ -1,24 +1,24 @@
 #ifndef NARRATIVEDIRECTOR_H
 #define NARRATIVEDIRECTOR_H
 
-#include <QMainWindow>
-#include <QVector>
+#include "preferences.h"
 #include <QAudioRecorder>
-#include <QMediaPlayer>
-#include <QFileDialog>
-#include <sstream>
-#include <QDebug>
-#include <utility>
-#include <QFileInfo>
 #include <QDateTime>
-#include <QTime>
+#include <QDebug>
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QMainWindow>
+#include <QMediaPlayer>
 #include <QMessageBox>
 #include <QStandardPaths>
-#include "preferences.h"
+#include <QTime>
+#include <QVector>
+#include <sstream>
+#include <utility>
 
 #ifdef _WIN32
-#include <windows.h>
 #include <tchar.h>
+#include <windows.h>
 #endif
 
 namespace Ui {
@@ -28,25 +28,25 @@ class NarrativeDirector;
 class NarrativeDirector : public QMainWindow {
     Q_OBJECT
 
-public:
+  public:
     explicit NarrativeDirector(QWidget *parent = nullptr);
 
     void changeParagraphLbl(int);
     uint getNumPrgs();
     QString getParagraphFromFile(qint64);
     QString getParagraph(int);
-    QString getSentenceFromFile(qint64&);
+    QString getSentenceFromFile(qint64 &);
 
     void updateTimeLbl();
     void updateRecordingLocation();
     void updatePlayerLocation();
 
     void saveToProjectFile();
-    void loadFromProjectFile(const QString&);
+    void loadFromProjectFile(const QString &);
 
     ~NarrativeDirector() override;
 
-private slots:
+  private slots:
     void on_actionOpen_triggered();
     void on_actionSave_triggered();
     void on_actionExport_Parts_File_triggered();
@@ -71,11 +71,11 @@ private slots:
 
     void on_actionGo_To_triggered();
 
-private:
+  private:
     Ui::NarrativeDirector *ui;
     Preferences *preferences;
-    QAudioRecorder* audioRecorder = nullptr;
-    QMediaPlayer* audioPlayer = nullptr;
+    QAudioRecorder *audioRecorder = nullptr;
+    QMediaPlayer *audioPlayer = nullptr;
     QUrl recordingLocation;
     QTime recordingPosition;
     QTime recordingDuration;
@@ -98,12 +98,12 @@ private:
     QString getNonExtensionFileName();
     bool promptIfNotSaved();
 
-    bool isEndOfSentence(const QString&);
-    bool isEndOfQuote(const QString&);
-    void appendUntilNextSentence(QString&, qint64&);
+    bool isEndOfSentence(const QString &);
+    bool isEndOfQuote(const QString &);
+    void appendUntilNextSentence(QString &, qint64 &);
 
     void closeEvent(QCloseEvent *event) override;
-    void showErrorMsg(const QString&);
+    void showErrorMsg(const QString &);
 };
 
 #endif // NARRATIVEDIRECTOR_H
