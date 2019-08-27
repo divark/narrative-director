@@ -47,8 +47,9 @@ NarrativeDirector::~NarrativeDirector() {
 
 // File Context Menus
 void NarrativeDirector::on_actionOpen_triggered() {
-    if (!promptIfNotSaved())
-        return;
+    if (hasChanged) {
+        saveToProjectFile();
+    }
 
     QString fileName = QFileDialog::getOpenFileName(this, tr("Open Text File"),
                                                     QDir::currentPath(),
@@ -81,7 +82,11 @@ void NarrativeDirector::on_actionOpen_triggered() {
     prgNum = 0;
     filePos = 0;
 
+    narrativeInput.flush();
+    narrativeInput.reset();
     narrativeInput.setDevice(&narrativeFile);
+    narrativeInput.setCodec("UTF-8");
+
     cleanPrgs();
     prgNumTotal = getNumPrgs();
     updatePlayerInfo();
@@ -516,33 +521,11 @@ void NarrativeDirector::loadFromProjectFile(const QString &filePath) {
 }
 
 void NarrativeDirector::closeEvent(QCloseEvent *event) {
-    if (!promptIfNotSaved()) {
-        event->ignore();
-        return;
+    if (hasChanged) {
+        saveToProjectFile();
     }
 
     event->accept();
-}
-
-bool NarrativeDirector::promptIfNotSaved() {
-    if (hasChanged) {
-        QMessageBox::StandardButton exitBtn = QMessageBox::question(
-            this, "NarrativeDirector",
-            tr("You have unsaved changes. Would you like to save?\n"),
-            QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes);
-
-        if (exitBtn == QMessageBox::Yes) {
-            on_actionSave_triggered();
-        } else if (exitBtn == QMessageBox::Cancel) {
-            return false;
-        }
-    }
-
-    narrativeFile.close();
-    narrativeInput.flush();
-    narrativeInput.reset();
-    cleanPrgs();
-    return true;
 }
 
 void NarrativeDirector::updateRecordingLocation() {

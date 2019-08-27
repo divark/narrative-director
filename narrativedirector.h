@@ -96,7 +96,6 @@ class NarrativeDirector : public QMainWindow {
 
     QString getRecordingPath();
     QString getNonExtensionFileName();
-    bool promptIfNotSaved();
 
     bool isEndOfSentence(const QChar &);
     bool isEndOfQuote(const QChar &);
