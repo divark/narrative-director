@@ -456,7 +456,6 @@ QString NarrativeDirector::getParagraph(int paragraphNum) {
     prgEntry.second = paragraph;
 
     paragraphs.push_back(prgEntry);
-    hasChanged = true;
 
     return paragraph.trimmed();
 }
