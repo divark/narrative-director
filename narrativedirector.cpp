@@ -11,9 +11,6 @@ NarrativeDirector::NarrativeDirector(QWidget *parent)
     audioPlayer = new QMediaPlayer(this);
     preferences = new Preferences(this, audioRecorder);
 
-    recordingPosition = QTime(0, 0, 0, 0);
-    recordingDuration = QTime(0, 0, 0, 0);
-
     connect(audioRecorder, &QAudioRecorder::stateChanged, this,
             &NarrativeDirector::onARStateChanged);
     connect(audioRecorder, &QAudioRecorder::durationChanged, this,
@@ -60,12 +57,7 @@ void NarrativeDirector::on_actionOpen_triggered() {
     if (narrativeFile.isOpen())
         narrativeFile.close();
 
-    narrativeFile.setFileName(fileName);
-    if (!narrativeFile.open(QIODevice::ReadOnly | QIODevice::Text))
-        return;
-
-    QString fileNameNoExt = QFileInfo(narrativeFile).fileName();
-    fileNameNoExt = fileNameNoExt.left(fileNameNoExt.lastIndexOf("."));
+    QString fileNameNoExt = fileName.left(fileName.lastIndexOf("."));
 
     QFileInfo checkProjectFile(getRecordingPath() + "/" + fileNameNoExt +
                                ".ndp");
@@ -79,11 +71,13 @@ void NarrativeDirector::on_actionOpen_triggered() {
         return;
     }
 
+    narrativeFile.setFileName(fileName);
+    if (!narrativeFile.open(QIODevice::ReadOnly | QIODevice::Text))
+        return;
+
     prgNum = 0;
     filePos = 0;
 
-    narrativeInput.flush();
-    narrativeInput.reset();
     narrativeInput.setDevice(&narrativeFile);
     narrativeInput.setCodec("UTF-8");
 
@@ -151,7 +145,7 @@ void NarrativeDirector::on_actionAbout_Narrative_Director_triggered() {
     const QString aboutText =
         "Narrative Director is a Qt program written to assist in audio "
         "recording."
-        " It guides the narrator by recording in parts by paragraphs."
+        " It paces the narrator by recording per paragraph."
         " This program uses the MIT license.";
 
     QMessageBox::information(this, "About", aboutText);
@@ -167,6 +161,7 @@ void NarrativeDirector::onARStateChanged(QAudioRecorder::State state) {
         ui->stopBtn->setEnabled(true);
         ui->backBtn->setEnabled(false);
         ui->nextBtn->setEnabled(false);
+        ui->playbackSldr->setEnabled(false);
 
         ui->playBtn->setText(tr("Pause"));
         hasChanged = true;
@@ -179,32 +174,21 @@ void NarrativeDirector::onARStateChanged(QAudioRecorder::State state) {
         ui->recordBtn->setEnabled(true);
         ui->backBtn->setEnabled(true);
         ui->nextBtn->setEnabled(true);
+        ui->playbackSldr->setEnabled(true);
         ui->playBtn->setText(tr("Play"));
         break;
     }
 }
 
 void NarrativeDirector::updateAProgress(int duration) {
-    if (duration < 1000)
-        return;
-
-    QTime newTime(0, 0, 0, 0);
-    recordingPosition = newTime.addMSecs(duration);
-
-    if (recordingPosition > recordingDuration)
-        recordingDuration = recordingPosition;
-
-    updateTimeLbl();
+    ui->playbackSldr->setValue(duration / 1000);
+    updatePlayerTimeLbl();
 }
 
 void NarrativeDirector::updateAEnd(int duration) {
-    if (duration < 1000)
-        return;
-
-    QTime newTime(0, 0, 0, 0);
-    recordingDuration = newTime.addMSecs(duration);
-
-    updateTimeLbl();
+    ui->playbackSldr->setRange(0, duration / 1000);
+    ui->playbackSldr->setValue(duration / 1000);
+    updateRecorderTimeLbl();
 }
 
 // Media Player
@@ -232,24 +216,19 @@ void NarrativeDirector::onMPMediaStatusChanged(
     QMediaPlayer::MediaStatus mediaStatus) {
     switch (mediaStatus) {
     case QMediaPlayer::LoadedMedia:
-        recordingDuration =
-            QTime(0, 0, 0, 0)
-                .addMSecs(static_cast<int>(audioPlayer->duration()));
-
         ui->playBtn->setEnabled(true);
         ui->stopBtn->setEnabled(true);
-        updateTimeLbl();
+        ui->playbackSldr->setRange(0, audioPlayer->duration() / 1000);
+        updatePlayerTimeLbl();
         break;
     case QMediaPlayer::InvalidMedia:
     case QMediaPlayer::UnknownMediaStatus:
     case QMediaPlayer::NoMedia:
         if (audioRecorder->state() == QAudioRecorder::RecordingState)
             return;
-        recordingDuration = QTime(0, 0, 0, 0);
-
         ui->playBtn->setEnabled(false);
         ui->stopBtn->setEnabled(false);
-        updateTimeLbl();
+        updatePlayerTimeLbl();
         break;
     default:
         break;
@@ -300,22 +279,21 @@ void NarrativeDirector::on_stopBtn_clicked() {
 
         auto outputLocation = audioRecorder->outputLocation();
         audioPlayer->setMedia(outputLocation);
-        audioExtension = outputLocation.fileName().right(4);
+        if (outputLocation.fileName().lastIndexOf(".") != -1)
+            audioExtension = outputLocation.fileName().right(4);
         return;
     }
 
     // I must be playing audio otherwise, so
     audioPlayer->stop();
-    recordingPosition = QTime(0, 0, 0, 0);
-    updateTimeLbl();
+    updatePlayerTimeLbl();
 }
 
 void NarrativeDirector::on_backBtn_clicked() {
     if (prgNum - 1 < 0)
         return;
 
-    recordingPosition = QTime(0, 0, 0, 0);
-    updateTimeLbl();
+    updatePlayerTimeLbl();
 
     try {
         prgNum--;
@@ -330,8 +308,7 @@ void NarrativeDirector::on_nextBtn_clicked() {
     if (paragraphs.length() == 0)
         return;
 
-    recordingPosition = QTime(0, 0, 0, 0);
-    updateTimeLbl();
+    updatePlayerTimeLbl();
 
     try {
         prgNum++;
@@ -365,9 +342,20 @@ void NarrativeDirector::displayErrorMessage() {
     showErrorMsg(audioRecorder->errorString());
 }
 
-void NarrativeDirector::updateTimeLbl() {
-    ui->timeLbl->setText(recordingPosition.toString() + '/' +
-                         recordingDuration.toString());
+void NarrativeDirector::updatePlayerTimeLbl() {
+    QTime start = QTime(0, 0, 0).addMSecs(audioPlayer->position());
+    QTime end = QTime(0, 0, 0).addMSecs(audioPlayer->duration());
+    QString timeStamp = QString("%1/%2").arg(start.toString(), end.toString());
+
+    ui->timeLbl->setText(timeStamp);
+}
+
+void NarrativeDirector::updateRecorderTimeLbl() {
+    QTime start = QTime(0, 0, 0).addMSecs(audioRecorder->duration());
+    QTime end = QTime(0, 0, 0).addMSecs(audioRecorder->duration());
+    QString timeStamp = QString("%1/%2").arg(start.toString(), end.toString());
+
+    ui->timeLbl->setText(timeStamp);
 }
 
 void NarrativeDirector::changeParagraphLbl(int prgIndex) {
@@ -548,17 +536,19 @@ void NarrativeDirector::updatePlayerLocation() {
     auto recordingPath = recordingLocation.path();
 #endif
 
-    if (QFileInfo::exists(recordingPath))
+    if (QFileInfo::exists(recordingPath)) {
         audioPlayer->setMedia(recordingLocation);
-    else
+    } else {
         audioPlayer->setMedia(nullptr);
+    }
 }
 
 QString NarrativeDirector::getNonExtensionFileName() {
     QString recordingFileDirName =
         QFileInfo(narrativeFile.fileName()).fileName();
 
-    return recordingFileDirName.left(recordingFileDirName.lastIndexOf("."));
+    auto extensionPosition = recordingFileDirName.lastIndexOf(".");
+    return extensionPosition != -1 ? recordingFileDirName.left(extensionPosition): "";
 }
 
 QString NarrativeDirector::getRecordingPath() {
@@ -618,4 +608,13 @@ void NarrativeDirector::on_actionGo_To_triggered() {
         prgNum = oldPrgNum;
         qDebug() << QString::fromStdString(myError);
     }
+}
+
+void NarrativeDirector::on_playbackSldr_sliderPressed() {
+    audioPlayer->pause();
+}
+
+void NarrativeDirector::on_playbackSldr_sliderMoved(int position) {
+    audioPlayer->setPosition(position * 1000);
+    updatePlayerTimeLbl();
 }

@@ -37,7 +37,8 @@ class NarrativeDirector : public QMainWindow {
     QString getParagraph(int);
     QString getSentenceFromFile(qint64 &);
 
-    void updateTimeLbl();
+    void updatePlayerTimeLbl();
+    void updateRecorderTimeLbl();
     void updateRecordingLocation();
     void updatePlayerLocation();
 
@@ -71,14 +72,16 @@ class NarrativeDirector : public QMainWindow {
 
     void on_actionGo_To_triggered();
 
-  private:
+    void on_playbackSldr_sliderPressed();
+
+    void on_playbackSldr_sliderMoved(int position);
+
+private:
     Ui::NarrativeDirector *ui;
     Preferences *preferences;
     QAudioRecorder *audioRecorder = nullptr;
     QMediaPlayer *audioPlayer = nullptr;
     QUrl recordingLocation;
-    QTime recordingPosition;
-    QTime recordingDuration;
 
     QVector<std::pair<int, QString>> paragraphs;
     int prgNum = 0;
