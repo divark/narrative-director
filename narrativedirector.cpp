@@ -57,7 +57,12 @@ void NarrativeDirector::on_actionOpen_triggered() {
     if (narrativeFile.isOpen())
         narrativeFile.close();
 
-    QString fileNameNoExt = fileName.left(fileName.lastIndexOf("."));
+    narrativeFile.setFileName(fileName);
+    if (!narrativeFile.open(QIODevice::ReadOnly | QIODevice::Text))
+        return;
+
+    QString fileNameNoExt = QFileInfo(narrativeFile).fileName();
+    fileNameNoExt = fileNameNoExt.left(fileNameNoExt.lastIndexOf("."));
 
     QFileInfo checkProjectFile(getRecordingPath() + "/" + fileNameNoExt +
                                ".ndp");
@@ -70,10 +75,6 @@ void NarrativeDirector::on_actionOpen_triggered() {
         ui->recordBtn->setEnabled(true);
         return;
     }
-
-    narrativeFile.setFileName(fileName);
-    if (!narrativeFile.open(QIODevice::ReadOnly | QIODevice::Text))
-        return;
 
     prgNum = 0;
     filePos = 0;
@@ -229,6 +230,7 @@ void NarrativeDirector::onMPMediaStatusChanged(
         ui->playBtn->setEnabled(false);
         ui->stopBtn->setEnabled(false);
         updatePlayerTimeLbl();
+        ui->playbackSldr->setRange(0, 0);
         break;
     default:
         break;
@@ -408,7 +410,7 @@ bool NarrativeDirector::isEndOfSentence(const QChar &letter) {
 }
 
 bool NarrativeDirector::isEndOfQuote(const QChar &letter) {
-    return letter == "\"" or letter == "'" or letter == "”" or letter == "`";
+    return letter == "\"" || letter == "'" || letter == "”" || letter == "`";
 }
 
 void NarrativeDirector::appendUntilNextSentence(QString &sentence) {
@@ -492,9 +494,7 @@ void NarrativeDirector::loadFromProjectFile(const QString &filePath) {
     prgNum = prjInput.readLine().toInt();
 
     // Text file being read for narration.
-    narrativeFile.setFileName(prjInput.readLine());
-    if (!narrativeFile.open(QIODevice::ReadOnly | QIODevice::Text))
-        return;
+    prjInput.readLine();
     this->narrativeInput.setDevice(&narrativeFile);
     this->narrativeInput.setCodec("UTF-8");
 
