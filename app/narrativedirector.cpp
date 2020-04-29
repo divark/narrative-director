@@ -548,7 +548,9 @@ QString NarrativeDirector::getNonExtensionFileName() {
         QFileInfo(narrativeFile.fileName()).fileName();
 
     auto extensionPosition = recordingFileDirName.lastIndexOf(".");
-    return extensionPosition != -1 ? recordingFileDirName.left(extensionPosition): "";
+    return extensionPosition != -1
+               ? recordingFileDirName.left(extensionPosition)
+               : "";
 }
 
 QString NarrativeDirector::getRecordingPath() {

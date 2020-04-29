@@ -28,7 +28,7 @@ class NarrativeDirector;
 class NarrativeDirector : public QMainWindow {
     Q_OBJECT
 
-  public:
+public:
     explicit NarrativeDirector(QWidget *parent = nullptr);
 
     void changeParagraphLbl(int);
@@ -47,7 +47,7 @@ class NarrativeDirector : public QMainWindow {
 
     ~NarrativeDirector() override;
 
-  private slots:
+private slots:
     void on_actionOpen_triggered();
     void on_actionSave_triggered();
     void on_actionExport_Parts_File_triggered();

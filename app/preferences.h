@@ -13,15 +13,15 @@ class Preferences;
 class Preferences : public QDialog {
     Q_OBJECT
 
-  public:
+public:
     explicit Preferences(QWidget *parent = nullptr,
                          QAudioRecorder *recorder = nullptr);
     ~Preferences();
 
-  private slots:
+private slots:
     void on_buttonBox_accepted();
 
-  private:
+private:
     Ui::Preferences *ui;
     QAudioRecorder *recorder;
     QSettings globalSettings;

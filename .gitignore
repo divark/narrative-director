@@ -45,3 +45,6 @@ CMakeLists.txt.user*
 # OS-Dependent Files
 *.plist
 .DS_Store
+
+# Build directory
+build/*
