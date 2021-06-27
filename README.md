@@ -1,4 +1,10 @@
 # Narrative Director
+
+## Important Note
+This project has been abandoned in favor of the rewrite, [narrative-director-rs](https://github.com/divark/narrative-director-rs).
+
+---
+
 Ever tried recording audio? Getting frustrated how many times you have to retry, or how long you have to do edits? Fear no more, for this program may be for you then!
 
 Narrative Director is an audio recording program that I was inspired to make for a friend of mine getting into audio books. It works by recording in parts, pacing the narrator by showing the text file per paragraph.
